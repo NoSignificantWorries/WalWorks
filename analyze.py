@@ -31,7 +31,7 @@ class Image:
     def __init__(self, path: str) -> None:
         self.image = cv2.imread(path)
 
-        self.minimize()
+        self.minimize(100)
 
         self.rgb_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB) / 255
         self.hsv_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV) / 255
@@ -64,20 +64,41 @@ def analyze(image_path: str) -> None:
 
         rgb_copy = image.rgb_image.copy()
 
-        lab = cv2.cvtColor(rgb_copy, cv2.COLOR_RGB2LAB)
 
     # plottting
     with Timer("Plot masks making"):
-        fig, ax = plt.subplots(nrows=4, ncols=1, figsize=(8, 8))
+        fig, ax = plt.subplots(nrows=3, ncols=3, figsize=(8, 8))
+        
+        h_unic, h_cnts = np.unique(hue, return_counts=True)
+        
+        hue_steps = np.linspace(0, np.pi * 2, 13)
+        
+        print(hue_steps)
+        
+        index = np.argmax(h_cnts)
+        main_color = h_unic[index]
+        
+        min_index = np.argmin(np.abs(hue_steps - main_color))
+        print(hue_steps[min_index])
+        
+        hue_f = hue.flatten()
+        sat_f = saturation.flatten()
+        val_f = value.flatten()
+        
+        data = {
+            "hue": hue_f,
+            "saturation": sat_f,
+            "value": val_f
+        }
 
-        ax[0].imshow(gray_mask, cmap="inferno")
-        ax[1].imshow(black_mask, cmap="inferno")
-        ax[2].imshow(white_mask, cmap="inferno")
-        ax[3].imshow(rgb_copy)
+        for i, iname in enumerate(data.keys()):
+            for j, jname in enumerate(data.keys()):
+                data[iname]
+                ax[i][j].scatter(data[iname], data[jname], alpha=0.4, color="green")
 
     # making plot
     with Timer("Saving plot"):
-        plt.savefig("grayscale_masks.png", dpi=300)
+        plt.savefig("grayscale_masks.png", dpi=200)
 
     # plottting
     with Timer("Plot HSV making"):
@@ -89,7 +110,7 @@ def analyze(image_path: str) -> None:
 
     # making plot
     with Timer("Saving plot"):
-        plt.savefig("hsv_splitted.png", dpi=300)
+        plt.savefig("hsv_splitted.png", dpi=200)
 
 
 if __name__ == "__main__":
