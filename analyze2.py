@@ -1,3 +1,4 @@
+# %%
 import colorsys
 from pathlib import Path
 
@@ -5,6 +6,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
+# %%
 COLORS = [
     {
         "name": "red1",
@@ -74,6 +76,7 @@ COLORS = [
 ]
 
 
+# %%
 image_path = Path("~/.wallpaper").expanduser()
 
 image_raw = cv2.imread(image_path)
@@ -94,7 +97,7 @@ image_rgb = cv2.cvtColor(image_raw, cv2.COLOR_BGR2RGB) / 255
 image_hsv = cv2.cvtColor(image_raw, cv2.COLOR_BGR2HSV) / 255
 image_hsv[..., 0] *= np.pi * 2
 
-
+# %%
 color_stamps = np.linspace(0, np.pi * 2, 13)[:-1]
 
 delta = np.pi / 12
@@ -111,6 +114,7 @@ print(saturation.mean(), saturation.min(), saturation.max())
 print(value.mean(), value.min(), value.max())
 
 
+# %%
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
 
 ax.imshow(hue, cmap="hsv")
@@ -118,6 +122,7 @@ ax.imshow(hue, cmap="hsv")
 fig.savefig("hue.png", dpi=200)
 
 
+# %%
 hue = hue.flatten()
 saturation = saturation.flatten()
 value = value.flatten()
@@ -131,7 +136,6 @@ for i, dist in enumerate(color_d):
 
 fig, ax = plt.subplots(nrows=4, ncols=3, figsize=(12, 16))
 
-print(len(hues))
 for i, color_obj in enumerate(COLORS[:-1]):
 
     pattern = np.zeros((100, 100, 3), dtype=np.float64)
@@ -143,13 +147,6 @@ for i, color_obj in enumerate(COLORS[:-1]):
     pointsY_1 = []
     pointsY_2 = []
     for ii in range(100):
-        vl = ii / 100
-        if len(color > 0):
-            data = color[(color[..., 0] >= (vl - eps)) & (color[..., 0] <= (vl + eps))]
-            pointsX.append(ii)
-            pointsY.append(data[..., 1].mean() * 100)
-            pointsY_1.append((data[..., 1].mean() - data[..., 1].std()) * 100)
-            pointsY_2.append((data[..., 1].mean() + data[..., 1].std()) * 100)
         for jj in range(100):
             r, g, b = colorsys.hsv_to_rgb(color_stamps[i] / (np.pi * 2), ii / 100, jj / 100)
             pattern[ii, jj, 0] = r
@@ -158,15 +155,12 @@ for i, color_obj in enumerate(COLORS[:-1]):
     
     ax[i // 3][i % 3].imshow(pattern)
     
-    if len(colors[i]) > 0:
-        ax[i // 3][i % 3].fill_between(pointsX, pointsY_1, pointsY_2, alpha=0.3)
-        ax[i // 3][i % 3].scatter(pointsX, pointsY, alpha=0.3)
-
     ax[i // 3][i % 3].scatter(colors[i][..., 0].mean() * 100, colors[i][..., 1].mean() * 100)
 
 fig.savefig("colors_scatters.png", dpi=200)
 
 
+# %%
 fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(16, 8))
 
 for i, color in enumerate(hues):
@@ -188,3 +182,5 @@ for i, color in enumerate(hues):
 
 ax[1].legend()
 fig.savefig("analyze2.png", dpi=200)
+
+# %%
