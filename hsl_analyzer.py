@@ -7,7 +7,7 @@ from PIL import Image
 
 
 class ColorPaletteGenerator:
-    def __init__(self, filepath, colors=8, max_side=1000):
+    def __init__(self, filepath, colors=8, max_side=1000, color_thresholds=12, lightness_thresholds=10, chroma_thresholds=10):
         self.ref_white = (95.047, 100.000, 108.883)
 
         try:
@@ -19,6 +19,14 @@ class ColorPaletteGenerator:
 
         self.W, self.H = self.img.size
         self.colors_cnt = colors
+
+        self.color_thresholds = color_thresholds
+        self.hue_step = math.pi * 2 / self.color_thresholds
+        
+        self.lightness_thresholds = lightness_thresholds
+        self.lightness_step = 1 / self.lightness_thresholds
+        self.chroma_thresholds = chroma_thresholds
+        self.chroma_step = chroma_thresholds
 
         self.pixels = []
         self.compress_image(max_side)
@@ -35,7 +43,6 @@ class ColorPaletteGenerator:
         a_step = (a - T) // (T - 1)
         
         new_b = (b * T) // a
-        
         b_step = (b - new_b) // (new_b - 1)
         
         new_w, w_step, new_h, h_step = (T, a_step, new_b, b_step) if self.W > self.H else (new_b, b_step, T, a_step)
@@ -46,26 +53,32 @@ class ColorPaletteGenerator:
             xi = 0
             x = 0
             while xi < new_w:
-                self.pixels.append(self.img.getpixel((x, y)))
+                r, g, b = self.img.getpixel((x, y))
+                h = self.rgb_to_hue(r, g, b)
+                h = self.value_to_id(h, self.hue_step)
+                l, c = self.rgb_to_lc(r, g, b)
+                l = self.value_to_id(l, self.lightness_step)
+                c = self.value_to_id(c, self.chroma_step)
+                
+                self.pixels.append((r, g, b, h, l, c))
+
                 xi += 1
                 x += w_step
+
             yi += 1
             y += h_step   
         
         self.W, self.H = new_w, new_h
     
-    def rgb_to_hsl(self, r, g, b):
+    def rgb_to_hue(self, r, g, b):
         r, g, b = r / 255.0, g / 255.0, b / 255.0
         max_val = max(r, g, b)
         min_val = min(r, g, b)
         
-        l = (max_val + min_val) / 2.0
-        
         if max_val == min_val:
-            h = s = 0.0
+            h = 0.0
         else:
             d = max_val - min_val
-            s = d / (2.0 - max_val - min_val) if l > 0.5 else d / (max_val + min_val)
             
             if max_val == r:
                 h = (g - b) / d + (6.0 if g < b else 0.0)
@@ -75,7 +88,7 @@ class ColorPaletteGenerator:
                 h = (r - g) / d + 4.0
             h /= 6.0
         
-        return [h * math.pi * 2, s, l]
+        return h * math.pi * 2
     
     def rgb_to_xyz(self, r, g, b):
         r = r / 255.0
@@ -94,7 +107,7 @@ class ColorPaletteGenerator:
         
         return (x * 100.0, y * 100.0, z * 100.0)
     
-    def xyz_to_lab(self, x, y, z):
+    def xyz_to_lc(self, x, y, z):
         # Normalize by reference white
         x /= self.ref_white[0]
         y /= self.ref_white[1]
@@ -123,38 +136,31 @@ class ColorPaletteGenerator:
         a = max(-1.0, min(1.0, a))
         b = max(-1.0, min(1.0, b))
         
-        return (L, a, b)
-    
-    def rgb_to_lab(self, r, g, b):
-        x, y, z = self.rgb_to_xyz(r, g, b)
-        return self.xyz_to_lab(x, y, z)
-    
-    def convert_to_full(self):
-        new_pixels = []
-        for i in range(len(self.pixels)):
-            r, g, b = self.pixels[i]
-            h, _, _ = self.rgb_to_hsl(r, g, b)
-            l, a, b = self.rgb_to_lab(r, g, b)
-            c = math.sqrt(a * a + b * b) / math.sqrt(2)
-            new_pixels.append((r, g, b, h, c, l))
+        c = math.sqrt(a * a + b * b) / math.sqrt(2)
         
-        self.pixels = new_pixels
+        return (L, c)
+    
+    def rgb_to_lc(self, r, g, b):
+        x, y, z = self.rgb_to_xyz(r, g, b)
+        return self.xyz_to_lc(x, y, z)
+    
+    def value_to_id(self, value, step):
+        rel_position = value / step
+        rel_position_floored =  math.floor(rel_position)
+
+        if rel_position >= rel_position_floored + 0.5:
+            return rel_position_floored + 1
+        return rel_position_floored
     
     def make_palette(self):
-        self.convert_to_full()
-
         for i in range(len(self.pixels)):
-            r, g, b, h, c, l = self.pixels[i]
-    
+            r, g, b, h, l, c = self.pixels[i]
+
     def print_palette(self, palette):
-        for i, color in enumerate(palette):
-            r, g, b = color['rgb']
-            hsl = color['hsl']
-            print(f"Color {i+1}: RGB({r:3d}, {g:3d}, {b:3d}) | "
-                  f"HSL({hsl[0]:3.0f}°, {hsl[1]:3.0f}%, {hsl[2]:3.0f}%)")
+        ...
 
 if __name__ == "__main__":
     img_path = Path("~/.wallpaper").expanduser()
-    generator = ColorPaletteGenerator(img_path)
+    generator = ColorPaletteGenerator(img_path, max_side=600, color_thresholds=12)
     
     generator.make_palette()
