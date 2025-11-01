@@ -29,6 +29,9 @@ class ColorPaletteGenerator:
         self.chroma_step = chroma_thresholds
 
         self.pixels = []
+        self.by_hue = [[] for _ in range(color_thresholds)]
+        self.by_lightness = [[] for _ in range(lightness_thresholds)]
+        self.by_chroma = [[] for _ in range(chroma_thresholds)]
         self.compress_image(max_side)
     
     def compress_image(self, T):
@@ -47,6 +50,7 @@ class ColorPaletteGenerator:
         
         new_w, w_step, new_h, h_step = (T, a_step, new_b, b_step) if self.W > self.H else (new_b, b_step, T, a_step)
 
+        idx = 0
         x, y = 0, 0
         xi, yi = 0, 0
         while yi < new_h:
@@ -60,8 +64,17 @@ class ColorPaletteGenerator:
                 l = self.value_to_id(l, self.lightness_step)
                 c = self.value_to_id(c, self.chroma_step)
                 
-                self.pixels.append((r, g, b, h, l, c))
+                print(h, l, c)
+                
+                color = (r, g, b, h, l, c)
+                
+                self.by_hue[h].append(color)
+                self.by_lightness[l].append(color)
+                self.by_chroma[c].append(color)
+                
+                self.pixels.append(color)
 
+                idx += 1
                 xi += 1
                 x += w_step
 
@@ -153,8 +166,8 @@ class ColorPaletteGenerator:
         return rel_position_floored
     
     def make_palette(self):
-        for i in range(len(self.pixels)):
-            r, g, b, h, l, c = self.pixels[i]
+        for h_zone in self.by_hue:
+            print(len(h_zone))
 
     def print_palette(self, palette):
         ...
